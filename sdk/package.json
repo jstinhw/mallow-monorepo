@@ -1,0 +1,76 @@
+{
+  "name": "@mallow/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Graviton cross-chain intents and the Mallow Guardian agent",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jstinhw/mallow.git",
+    "directory": "sdk"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./graviton": {
+      "import": {
+        "types": "./dist/graviton/index.d.ts",
+        "default": "./dist/graviton/index.js"
+      },
+      "require": {
+        "types": "./dist/graviton/index.d.cts",
+        "default": "./dist/graviton/index.cjs"
+      }
+    },
+    "./guardian": {
+      "import": {
+        "types": "./dist/guardian/index.d.ts",
+        "default": "./dist/guardian/index.js"
+      },
+      "require": {
+        "types": "./dist/guardian/index.d.cts",
+        "default": "./dist/guardian/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@zerodev/sdk": "^5.5.7",
+    "merkletreejs": "^0.3.11",
+    "viem": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "peerDependencies": {
+    "@zerodev/multi-chain-ecdsa-validator": "^5.4.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# build output
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# test / tooling
+coverage/
+playwright-report/
+test-results/
+.vitest/
+
+# foundry
+graviton/contracts/out/
+graviton/contracts/cache/
+graviton/contracts/broadcast/*/31337/
+graviton/contracts/broadcast/**/dry-run/
+graviton/contracts/docs/
+
+# editors / os
+.DS_Store
+.idea/
+.vscode/
+*.log

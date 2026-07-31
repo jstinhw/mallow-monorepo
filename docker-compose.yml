@@ -1,0 +1,132 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: graviton-postgres
+    environment:
+      POSTGRES_USER: graviton
+      POSTGRES_PASSWORD: graviton_dev
+      POSTGRES_DB: graviton
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U graviton"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - graviton
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: graviton-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: graviton
+      RABBITMQ_DEFAULT_PASS: graviton_dev
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - graviton
+
+  graviton-server:
+    build:
+      context: ..
+      dockerfile: apps/graviton-server/Dockerfile
+    container_name: graviton-server
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://graviton:graviton_dev@postgres:5432/graviton
+      RABBITMQ_URL: amqp://graviton:graviton_dev@rabbitmq:5672
+      PORT: 3000
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - graviton
+
+  graviton-relayer-api:
+    build:
+      context: ..
+      dockerfile: apps/graviton-relayer/Dockerfile
+      target: api
+    container_name: graviton-relayer-api
+    ports:
+      - "3001:3001"
+    environment:
+      RABBITMQ_URL: amqp://graviton:graviton_dev@rabbitmq:5672
+      PORT: 3001
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      # Add your RPC and private key in .env file
+      RPC_URL: ${RPC_URL:-https://sepolia.base.org}
+      PRIVATE_KEY: ${PRIVATE_KEY}
+      CONTRACT_ADDRESS: ${CONTRACT_ADDRESS}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - graviton
+
+  graviton-relayer-worker:
+    build:
+      context: ..
+      dockerfile: apps/graviton-relayer/Dockerfile
+      target: worker
+    container_name: graviton-relayer-worker
+    environment:
+      RABBITMQ_URL: amqp://graviton:graviton_dev@rabbitmq:5672
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      WORKER_CONCURRENCY: 5
+      # Add your RPC and private key in .env file
+      RPC_URL: ${RPC_URL:-https://sepolia.base.org}
+      PRIVATE_KEY: ${PRIVATE_KEY}
+      CONTRACT_ADDRESS: ${CONTRACT_ADDRESS}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - graviton
+
+  graviton-quoter:
+    build:
+      context: ..
+      dockerfile: apps/graviton-quoter/Dockerfile
+    container_name: graviton-quoter
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      RPC_URL: ${RPC_URL:-https://sepolia.base.org}
+    restart: unless-stopped
+    networks:
+      - graviton
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  graviton:
+    driver: bridge

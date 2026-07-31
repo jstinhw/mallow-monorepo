@@ -1,0 +1,67 @@
+{
+  "name": "mallow",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mallow monorepo \u2014 Graviton cross-chain intents, Guardian transaction safety agent, SDK, and wallet",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jstinhw/mallow.git"
+  },
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "contracts:build": "forge build --root graviton/contracts",
+    "contracts:test": "forge test --root graviton/contracts",
+    "graviton:migrate": "tsx graviton/scripts/migrate.ts",
+    "changeset": "changeset",
+    "release": "turbo run build --filter=@mallow/sdk && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.20.6",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "keccak",
+      "msw"
+    ],
+    "ignoredBuiltDependencies": [
+      "sharp",
+      "unrs-resolver"
+    ],
+    "packageExtensions": {
+      "@fastify/cors@>=11": {
+        "peerDependencies": {
+          "fastify": "^5.0.0"
+        }
+      },
+      "@fastify/cors@<9": {
+        "peerDependencies": {
+          "fastify": "^4.0.0"
+        }
+      }
+    }
+  }
+}

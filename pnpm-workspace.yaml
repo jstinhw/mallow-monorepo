@@ -1,0 +1,7 @@
+packages:
+  - "graviton/apps/*"
+  - "graviton/packages/*"
+  - "guardian/apps/*"
+  - "packages/*"
+  - "sdk"
+  - "wallet"
