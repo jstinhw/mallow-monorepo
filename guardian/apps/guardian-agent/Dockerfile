@@ -7,12 +7,14 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 RUN curl -L https://foundry.paradigm.xyz | bash && /root/.foundry/bin/foundryup
 WORKDIR /app
 
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
-COPY agents/guardian-agent-service ./agents/guardian-agent-service
+# ponytail: whole-repo copy, not per-package. A partial copy makes pnpm see
+# fewer workspace importers than the lockfile lists and --frozen-lockfile
+# fails. Split it back out if build times start hurting.
+COPY . .
 
 RUN pnpm install --frozen-lockfile \
     --filter @mallow/guardian-agent-service...
 
-WORKDIR /app/agents/guardian-agent-service
+WORKDIR /app/guardian/apps/guardian-agent
 EXPOSE 3002
 CMD ["pnpm", "exec", "tsx", "src/server.ts"]

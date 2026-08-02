@@ -1,51 +1,57 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# Build from the monorepo root:
+#   docker build -f graviton/apps/quoter/Dockerfile -t graviton-quoter .
 
+FROM node:24-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
-
-# Copy workspace files
+# ── workspace manifests ────────────────────────────────────────────
+# --frozen-lockfile validates the whole workspace, so every manifest has to be
+# here; --filter then installs only the quoter's subgraph. Shared by both
+# stages below so the list lives in one place.
+FROM base AS manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/graviton-quoter/package.json ./apps/graviton-quoter/
-COPY packages/core/package.json ./packages/core/
+COPY graviton/packages/core/package.json ./graviton/packages/core/
+COPY graviton/apps/quoter/package.json ./graviton/apps/quoter/
+COPY graviton/apps/relayer/package.json ./graviton/apps/relayer/
+COPY graviton/apps/server/package.json ./graviton/apps/server/
+COPY guardian/apps/guardian-agent/package.json ./guardian/apps/guardian-agent/
+COPY packages/agent-protocol/package.json ./packages/agent-protocol/
+COPY sdk/package.json ./sdk/
+COPY wallet/package.json ./wallet/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# ── build ──────────────────────────────────────────────────────────
+FROM manifests AS builder
+RUN pnpm install --frozen-lockfile --filter "@graviton/quoter..."
 
-# Copy source code
-COPY tsconfig.base.json ./
-COPY packages/core ./packages/core
-COPY apps/graviton-quoter ./apps/graviton-quoter
+COPY graviton/tsconfig.base.json ./graviton/
+COPY graviton/packages/core ./graviton/packages/core
+COPY graviton/apps/quoter ./graviton/apps/quoter
+RUN pnpm --filter "@graviton/quoter..." build
 
-# Build packages
-RUN pnpm --filter @graviton/core build
-RUN pnpm --filter @graviton/quoter build
+# ── runtime ────────────────────────────────────────────────────────
+FROM manifests AS runner
 
-# Stage 2: Production
-FROM node:20-alpine AS runner
+ENV NODE_ENV=production
+# tini reaps zombies and forwards SIGTERM, which node-as-PID-1 ignores.
+RUN apk add --no-cache tini
 
-WORKDIR /app
+# Prod deps only. The store is dropped afterwards — node_modules hardlinks
+# survive it, so this is pure size saving. The chown matters: COPY preserves
+# host file modes and many manifests here are 0600, unreadable to USER node.
+RUN pnpm install --frozen-lockfile --prod --filter "@graviton/quoter..." \
+  && rm -rf "$(pnpm store path)" \
+  && chown -R node:node /app
 
-RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+COPY --from=builder --chown=node:node /app/graviton/packages/core/dist ./graviton/packages/core/dist
+COPY --from=builder --chown=node:node /app/graviton/apps/quoter/dist ./graviton/apps/quoter/dist
 
-# Copy workspace files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/graviton-quoter/package.json ./apps/graviton-quoter/
-COPY packages/core/package.json ./packages/core/
-
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
-
-# Copy built artifacts
-COPY --from=builder /app/apps/graviton-quoter/dist ./apps/graviton-quoter/dist
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3002/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
+USER node
+WORKDIR /app/graviton/apps/quoter
 
 EXPOSE 3002
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3002)+'/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 
-CMD ["node", "apps/graviton-quoter/dist/index.js"]
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist/index.js"]
