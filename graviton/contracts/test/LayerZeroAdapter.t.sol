@@ -38,10 +38,10 @@ contract MockLayerZeroEndpoint is ILayerZeroEndpointV2 {
 
         emit SendCalled(_params.dstEid, _params.receiver, _params.message, _params.options, _refundAddress, msg.value);
 
-        // Consume the fee, return excess to adapter (simulating endpoint behavior)
+        // Consume the fee, refund excess to the refund address (matches EndpointV2._payNative)
         uint256 excess = msg.value - nativeFee;
         if (excess > 0) {
-            (bool success,) = msg.sender.call{value: excess}("");
+            (bool success,) = _refundAddress.call{value: excess}("");
             require(success);
         }
 
@@ -152,7 +152,7 @@ contract LayerZeroAdapterTest is Test {
         adapter.initiateBridge(address(token), 0, adapterData, order);
 
         assertEq(lzEndpoint.lastRefundAddress(), refundAddress);
-        // Endpoint consumed 0.01 ether fee, returned 0.09 to adapter, adapter forwarded to refundAddress
+        // Endpoint consumed 0.01 ether fee and refunded 0.09 to refundAddress
         assertEq(refundAddress.balance - refundBalanceBefore, 0.09 ether);
         // Adapter should hold no native
         assertEq(address(adapter).balance, 0);
