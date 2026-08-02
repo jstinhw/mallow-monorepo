@@ -8,7 +8,7 @@
     "dev:worker": "tsx watch src/worker.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "start:worker": "node dist/worker.ts",
+    "start:worker": "node dist/worker.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src",

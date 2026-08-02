@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.turbo
+**/.turbo
+*.tsbuildinfo
+**/*.tsbuildinfo
+.git
+# Secrets: needs the **/ prefix, a bare `.env` only matches the repo root
+**/.env
+**/.env.*
+!**/.env.example
+graviton/contracts
