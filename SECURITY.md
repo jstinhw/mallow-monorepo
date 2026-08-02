@@ -10,7 +10,7 @@ and steps to reproduce. We aim to acknowledge within 72 hours.
 
 ## Scope
 
-In scope: the Graviton contracts and services, the Guardian agent, `@mallow/sdk`,
+In scope: the Graviton contracts and services, the Guardian agent, `mallowallet`,
 and the wallet in this repository.
 
 Out of scope: findings that require a compromised user device or a maliciously

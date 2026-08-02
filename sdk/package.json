@@ -1,5 +1,5 @@
 {
-  "name": "@mallow/sdk",
+  "name": "mallowallet",
   "version": "0.1.0",
   "description": "TypeScript SDK for Graviton cross-chain intents and the Mallow Guardian agent",
   "license": "MIT",

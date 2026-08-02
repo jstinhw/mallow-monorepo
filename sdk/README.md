@@ -1,4 +1,4 @@
-# @graviton/sdk
+# mallowallet
 
 TypeScript SDK for cross-chain intent settlement via the Graviton protocol. Built following [viem](https://viem.sh)'s client-action architecture for type safety and tree-shakeability.
 
@@ -14,7 +14,7 @@ TypeScript SDK for cross-chain intent settlement via the Graviton protocol. Buil
 ## Installation
 
 ```bash
-pnpm install @graviton/sdk @zerodev/sdk viem
+pnpm install mallowallet @zerodev/sdk viem
 ```
 
 ## Quick Start
@@ -25,7 +25,7 @@ import {
   graviton,
   installInteropExecutor,
   INTEROP_EXECUTOR,
-} from '@graviton/sdk';
+} from 'mallowallet/graviton';
 import { createKernelAccount, KERNEL_V3_3, getEntryPoint } from '@zerodev/sdk';
 import { toMultiChainECDSAValidator } from '@zerodev/multi-chain-ecdsa-validator';
 import { createPublicClient, http, parseUnits, encodeFunctionData, erc20Abi } from 'viem';
