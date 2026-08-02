@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   release:
-    name: Publish @mallow/sdk
+    name: Publish mallowallet
     runs-on: ubuntu-latest
     permissions:
       contents: write

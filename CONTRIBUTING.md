@@ -42,7 +42,7 @@ for the contracts.
 
 ## Changing the SDK
 
-`@mallow/sdk` is the only published package. Every change to it needs a
+`mallowallet` is the only published package. Every change to it needs a
 changeset:
 
 ```sh

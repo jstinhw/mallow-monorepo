@@ -6,7 +6,7 @@ Monorepo for Mallow's core protocol and agent work.
 | ------------------------ | --------------------------------------------------------------------- |
 | [`graviton/`](#graviton) | Cross-chain intent protocol — contracts plus the services that run it |
 | [`guardian/`](#guardian) | Agent that reviews a transaction before you sign it                   |
-| [`sdk/`](#sdk)           | `@mallow/sdk` — the published client for both                         |
+| [`sdk/`](#sdk)           | `mallowallet` — the published client for both                         |
 | [`wallet/`](#wallet)     | The Mallow wallet                                                     |
 
 The marketing site and demo apps live in their own repositories; this one is
@@ -25,7 +25,7 @@ guardian/
   apps/guardian-agent/  Fastify service; streams a risk verdict over SSE
 packages/
   agent-protocol/     Wire protocol between the wallet and agent services
-sdk/                  @mallow/sdk
+sdk/                  mallowallet
 wallet/               Next.js wallet app
 ```
 
@@ -74,12 +74,12 @@ Anthropic, OpenAI, Gemini, or a local server via env vars.
 ## SDK
 
 ```sh
-npm install @mallow/sdk
+npm install mallowallet
 ```
 
 ```ts
-import { createInteropClient } from "@mallow/sdk/graviton";
-import { createGuardianClient } from "@mallow/sdk/guardian";
+import { createInteropClient } from "mallowallet/graviton";
+import { createGuardianClient } from "mallowallet/guardian";
 
 const guardian = createGuardianClient({ url: "https://guardian.example" });
 const verdict = await guardian.check(request, {

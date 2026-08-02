@@ -26,7 +26,7 @@
     "contracts:test": "forge test --root graviton/contracts",
     "graviton:migrate": "tsx graviton/scripts/migrate.ts",
     "changeset": "changeset",
-    "release": "turbo run build --filter=@mallow/sdk && changeset publish"
+    "release": "turbo run build --filter=mallowallet && changeset publish"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.2",
