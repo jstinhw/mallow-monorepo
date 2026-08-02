@@ -49,8 +49,15 @@ changeset:
 pnpm changeset
 ```
 
-Describe the change, commit the generated file with your PR. Merging to `main`
-opens a release PR; merging that publishes to npm.
+Describe the change, commit the generated file with your PR.
+
+Releases are manual. A maintainer runs:
+
+```sh
+pnpm changeset version   # applies pending changesets, bumps, writes CHANGELOG
+git commit -am "chore: version packages"
+pnpm release             # builds and publishes, prompts for 2FA
+```
 
 ## Adding a package
 
