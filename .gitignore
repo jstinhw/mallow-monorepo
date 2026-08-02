@@ -28,6 +28,7 @@ graviton/contracts/cache/
 graviton/contracts/broadcast/*/31337/
 graviton/contracts/broadcast/**/dry-run/
 graviton/contracts/docs/
+graviton/contracts/dependencies/
 
 # editors / os
 .DS_Store
