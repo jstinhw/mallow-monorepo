@@ -83,7 +83,7 @@ export function summarizerUserPrompt(args: {
   readonly traceLog: readonly string[];
 }): string {
   const lines: string[] = [
-    `tx: chainId=${args.seed.chainId} from=${args.seed.from} to=${args.seed.to} calldata=${truncate(args.seed.calldata, 200)}`,
+    `tx: chainId=${args.seed.chainId} from=${args.seed.from} to=${args.seed.to} calldata=${truncate(args.seed.data, 200)}`,
     "",
     `trace facts:\n${JSON.stringify(args.facts)}`,
     "",

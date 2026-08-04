@@ -2,9 +2,9 @@
 
 ## 1. Problem, stated precisely
 
-**Input (seed):** a concrete call `{ chainId, from, to, calldata, block }`.
+**Input (seed):** a concrete call `{ chainId, from, to, data, block }`.
 
-- `to` is the entry contract; `calldata` decodes (via the fetched ABI) to `selector` + args.
+- `to` is the entry contract; `data` decodes (via the fetched ABI) to `selector` + args.
 - `from` and the decoded args **concretize** the storage the call touches (the _anchor_).
 
 **Output:**
@@ -88,7 +88,7 @@ advisory LLM hypothesis that must be verified against an on-chain read (see §8)
 ## 6. Pipeline
 
 ```
-seed {chainId, from, to, calldata}
+seed {chainId, from, to, data}
   │  RESOLVE-SEED (src/engine/resolve-seed.ts):
   ├─  ACQUIRE: source/ABI (Sourcify), proxy-resolve, compile, PIN block
   ├─  decode calldata against the TARGET's own ABI → selector + args
@@ -184,7 +184,7 @@ them, and an Anthropic provider is a drop-in behind it.)
 ## 10. Non-goals / assumptions
 
 - One chain per run; cross-chain is out of scope for v1.
-- Seed is a concrete call `{chainId, from, to, calldata}` (a tx hash is accepted and
+- Seed is a concrete call `{chainId, from, to, data}` (a tx hash is accepted and
   reduced to this shape). ABI-only seeds without concrete keys are supported but yield
   weaker boundedness (`role-set` / `unbounded`) by construction.
 - Default anchor-propagation is `strict` (trace _this_ entry). A `dataflow` mode (spawn a
