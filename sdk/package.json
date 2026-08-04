@@ -1,6 +1,6 @@
 {
   "name": "mallowallet",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "TypeScript SDK for Graviton cross-chain intents and the Mallow Guardian agent",
   "license": "MIT",
   "type": "module",
