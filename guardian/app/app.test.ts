@@ -50,6 +50,18 @@ describe("POST /check", () => {
     expect(res.payload).toContain("rpc down");
   });
 
+  it("keeps the CORS headers on the streamed response", async () => {
+    const app = buildServer(fakeAnalyze);
+    const res = await app.inject({
+      method: "POST",
+      url: "/check",
+      payload: VALID_BODY,
+      headers: { origin: "https://mallow.onrender.com" },
+    });
+
+    expect(res.headers["access-control-allow-origin"]).toBe("*");
+  });
+
   it("rejects a malformed body before starting the stream", async () => {
     const app = buildServer(fakeAnalyze);
     const res = await app.inject({

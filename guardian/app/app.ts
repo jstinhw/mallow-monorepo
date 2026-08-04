@@ -48,6 +48,9 @@ export function buildServer(analyze: AnalyzeFn = analyzeTransactionRequest): Fas
     const seed = parsed.data;
 
     reply.raw.writeHead(200, {
+      // Writing to the raw socket skips Fastify's reply, so the CORS headers the
+      // plugin set there have to be carried over by hand or the browser blocks the stream.
+      ...reply.getHeaders(),
       "content-type": "text/event-stream",
       "cache-control": "no-cache",
       connection: "keep-alive",
