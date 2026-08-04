@@ -1,7 +1,13 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "noEmit": true,
+    "types": ["node"],
+    "lib": ["ES2022"],
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "agent/**/*.ts", "tools/contract-storage-tracer/src/**/*.ts"]
 }
