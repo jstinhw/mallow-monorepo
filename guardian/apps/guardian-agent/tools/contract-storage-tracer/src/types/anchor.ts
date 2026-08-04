@@ -1,4 +1,4 @@
-import type { Hash } from "viem"
+import type { Hash } from "viem";
 
 /**
  * How a mapping key at an access site is derived. This is the raw material for
@@ -12,12 +12,12 @@ export type KeyProvenance =
   | { readonly kind: "constant"; readonly value: string }
   | { readonly kind: "storage"; readonly slot: string; readonly note?: string }
   | { readonly kind: "derived"; readonly note: string }
-  | { readonly kind: "unknown" }
+  | { readonly kind: "unknown" };
 
 export interface MappingKey {
-  readonly provenance: KeyProvenance
+  readonly provenance: KeyProvenance;
   /** Concrete value when known from the seed calldata (e.g. the spender). */
-  readonly concrete?: string
+  readonly concrete?: string;
 }
 
 /**
@@ -27,10 +27,10 @@ export interface MappingKey {
  * (e.g. `["x"]` for `s.x`, `["[3]"]` for `arr[3]`).
  */
 export interface Anchor {
-  readonly codehash: Hash
-  readonly baseSlot: string
-  readonly variable: string
-  readonly keyPath: readonly MappingKey[]
-  readonly valueType: string
-  readonly elementPath?: readonly string[]
+  readonly codehash: Hash;
+  readonly baseSlot: string;
+  readonly variable: string;
+  readonly keyPath: readonly MappingKey[];
+  readonly valueType: string;
+  readonly elementPath?: readonly string[];
 }

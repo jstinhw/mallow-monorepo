@@ -1,6 +1,6 @@
-import { z } from "zod"
-import { chainIdSchema } from "../chains"
-import { addressSchema, hexSchema } from "./common"
+import { z } from "zod";
+import { chainIdSchema } from "../chains";
+import { addressSchema, hexSchema } from "./common";
 
 /**
  * The seed is a concrete call. `from` and the args decoded from `calldata` concretize the
@@ -14,10 +14,10 @@ export const seedSchema = z.object({
   calldata: hexSchema,
   /** Omit to pin the chain's current block at acquisition time. */
   block: z.number().int().nonnegative().optional(),
-})
+});
 
-export type Seed = z.infer<typeof seedSchema>
+export type Seed = z.infer<typeof seedSchema>;
 
 export function parseSeed(input: unknown): Seed {
-  return seedSchema.parse(input)
+  return seedSchema.parse(input);
 }

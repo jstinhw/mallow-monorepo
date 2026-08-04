@@ -1,22 +1,22 @@
-import type { z } from "zod"
+import type { z } from "zod";
 
 export interface ModelMessage {
-  readonly role: "system" | "user" | "assistant"
-  readonly content: string
+  readonly role: "system" | "user" | "assistant";
+  readonly content: string;
 }
 
 /** One streamed token chunk. Reasoning models emit "reasoning" before the final "content". */
 export interface ModelDelta {
-  readonly channel: "reasoning" | "content"
-  readonly text: string
+  readonly channel: "reasoning" | "content";
+  readonly text: string;
 }
 
 export interface ModelRequest {
-  readonly messages: readonly ModelMessage[]
-  readonly maxTokens?: number
-  readonly temperature?: number
+  readonly messages: readonly ModelMessage[];
+  readonly maxTokens?: number;
+  readonly temperature?: number;
   /** When set, the provider streams the response and reports each delta as it arrives. */
-  readonly onDelta?: (delta: ModelDelta) => void
+  readonly onDelta?: (delta: ModelDelta) => void;
 }
 
 /**
@@ -27,18 +27,18 @@ export interface ModelRequest {
  * OpenAI); an Anthropic provider is a drop-in behind the same interface.
  */
 export interface ModelProvider {
-  readonly name: string
-  complete(req: ModelRequest): Promise<string>
+  readonly name: string;
+  complete(req: ModelRequest): Promise<string>;
   /** Structured output validated against a zod schema (all advisory tasks use this). */
-  respondJson<T>(req: ModelRequest, schema: z.ZodType<T>): Promise<T>
+  respondJson<T>(req: ModelRequest, schema: z.ZodType<T>): Promise<T>;
 }
 
 /** Pulls the first {...} object out of a model's text so JSON survives minor preamble. */
 export function extractJsonObject(text: string): string {
-  const start = text.indexOf("{")
-  const end = text.lastIndexOf("}")
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
   if (start < 0 || end < 0 || end < start) {
-    throw new Error(`no JSON object in model output: ${text.slice(0, 160)}`)
+    throw new Error(`no JSON object in model output: ${text.slice(0, 160)}`);
   }
-  return text.slice(start, end + 1)
+  return text.slice(start, end + 1);
 }

@@ -14,7 +14,7 @@ The canonical example: seed a `USDC.approve(spender, amount)` call and the trace
 the approval entry `allowed[from][spender]` can only be moved by the `owner` (via `approve` /
 `increaseAllowance`) and by the **approved spender** (via `transferFrom`). It then fetches the
 spender contract, finds the function that calls `transferFrom`, and recurses — terminating
-cleanly because every hop's caller set is *bounded by the code's own access constraints*. A
+cleanly because every hop's caller set is _bounded by the code's own access constraints_. A
 `USDC.transfer(...)` seed instead produces two `balanceAndBlacklistStates[...]` anchors; a
 `mint(...)` produces three (`balanceAndBlacklistStates`, `totalSupply_`, `minterAllowed`) —
 the same machinery, no ERC-20-specific code.
@@ -33,7 +33,7 @@ the same machinery, no ERC-20-specific code.
 
 ## The core idea: bounded vs. unbounded
 
-A function *touches* the anchor if it reads/writes the anchor slot **or calls something
+A function _touches_ the anchor if it reads/writes the anchor slot **or calls something
 that does**. For each toucher we compute an **authorized-caller set** — who can actually
 reach that touch — from two deterministic signals:
 
@@ -45,7 +45,7 @@ reach that touch — from two deterministic signals:
 
 If **no** toucher binds `msg.sender` to the concrete entry, the caller set is everyone →
 **`unbounded`**. The tracer does **not** silently expand it; it flags the node, records
-*why*, and marks coverage `partial`. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+_why_, and marks coverage `partial`. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 for the full boundedness taxonomy.
 
 ## Pipeline
@@ -101,14 +101,14 @@ npm run trace -- --chain 1 \
 self-checks the result (23/23 assertions): two `approve` seeds and one **general `transfer`**
 seed that proves the pipeline is no longer approve-only.
 
-| | Example 1 | Example 2 | Example 3 |
-|---|---|---|---|
-| Seed | EOA approves USDC to **an EOA** | EOA approves USDC to **Uniswap** (`SwapRouter02`) | EOA **transfers** USDC |
-| Anchor(s) | `allowed[owner][spender]` @ slot 10 — **slot verified against on-chain `allowance()`** | same | `balanceAndBlacklistStates[from]` and `[to]` — **observed writes** |
-| `approve` / `increase` / `decrease` | `singleton{owner}` | `singleton{owner}` | — |
-| `transferFrom` | `singleton{spender}` — the **only approved spender** | `singleton{SwapRouter02}` | (balance touchers) |
-| `permit` ×2, `allowance` | **unbounded** (flagged) | **unbounded** (flagged) | — |
-| Recursion | spender is an EOA → **leaf, stops** (1 contract) | descends into Uniswap, resolves each entrypoint's `from` provenance, emits **full chains** `owner → SwapRouter02.pull → USDC.transferFrom` (**2 contracts**), terminates at the owner | traces who else can move each balance |
+|                                     | Example 1                                                                              | Example 2                                                                                                                                                                             | Example 3                                                          |
+| ----------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Seed                                | EOA approves USDC to **an EOA**                                                        | EOA approves USDC to **Uniswap** (`SwapRouter02`)                                                                                                                                     | EOA **transfers** USDC                                             |
+| Anchor(s)                           | `allowed[owner][spender]` @ slot 10 — **slot verified against on-chain `allowance()`** | same                                                                                                                                                                                  | `balanceAndBlacklistStates[from]` and `[to]` — **observed writes** |
+| `approve` / `increase` / `decrease` | `singleton{owner}`                                                                     | `singleton{owner}`                                                                                                                                                                    | —                                                                  |
+| `transferFrom`                      | `singleton{spender}` — the **only approved spender**                                   | `singleton{SwapRouter02}`                                                                                                                                                             | (balance touchers)                                                 |
+| `permit` ×2, `allowance`            | **unbounded** (flagged)                                                                | **unbounded** (flagged)                                                                                                                                                               | —                                                                  |
+| Recursion                           | spender is an EOA → **leaf, stops** (1 contract)                                       | descends into Uniswap, resolves each entrypoint's `from` provenance, emits **full chains** `owner → SwapRouter02.pull → USDC.transferFrom` (**2 contracts**), terminates at the owner | traces who else can move each balance                              |
 
 The recursion into a spender resolves, per entrypoint, the provenance of the `from` it hands
 to `transferFrom`:
@@ -154,10 +154,10 @@ Silence it with `TRACE_LOG=0`.
 Every address the recursion touches is classified from three signals and reported under
 `addresses` (and used to decide whether to descend):
 
-1. **code** — `getCode`, but **EIP-7702-aware**: code `0xef0100…` is a *delegated EOA*, not
+1. **code** — `getCode`, but **EIP-7702-aware**: code `0xef0100…` is a _delegated EOA_, not
    a contract (common on mainnet now — e.g. `vitalik.eth` returns 23 bytes of delegation);
-2. **sent txs** — the account nonce: *no code + sent txs ⇒ EOA*, whereas *no code + never
-   sent ⇒ `undetermined`* (an unused EOA **or** an undeployed/counterfactual contract — an
+2. **sent txs** — the account nonce: _no code + sent txs ⇒ EOA_, whereas _no code + never
+   sent ⇒ `undetermined`_ (an unused EOA **or** an undeployed/counterfactual contract — an
    approval to such an address is **flagged**, since a contract could later be deployed there);
 3. **tags** — ENS reverse resolution (keyless), plus an optional external label service via
    `TAG_SERVICE_URL`.

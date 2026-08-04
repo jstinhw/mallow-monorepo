@@ -1,12 +1,12 @@
-import { keccak256, toHex, type Address, type Hex, type PublicClient } from "viem"
+import { keccak256, toHex, type Address, type Hex, type PublicClient } from "viem";
 
 /** Known implementation-pointer storage slots, tried in order. */
 const IMPL_SLOTS: Record<string, Hex> = {
   // EIP-1967: keccak256("eip1967.proxy.implementation") - 1
   "eip-1967": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
   // zeppelinos (used by USDC's FiatTokenProxy): keccak256("org.zeppelinos.proxy.implementation")
-  "zeppelinos": keccak256(toHex("org.zeppelinos.proxy.implementation")),
-}
+  zeppelinos: keccak256(toHex("org.zeppelinos.proxy.implementation")),
+};
 
 /**
  * Well-known proxy bookkeeping slots (implementation/admin/beacon pointers). These are not
@@ -22,12 +22,12 @@ export const PROXY_META_SLOTS: ReadonlySet<string> = new Set(
     // EIP-1967 beacon: keccak256("eip1967.proxy.beacon") - 1
     "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50",
   ].map((s) => s.toLowerCase()),
-)
+);
 
 function slotToAddress(word: Hex): Address | undefined {
-  const hex = word.replace(/^0x/, "").padStart(64, "0")
-  const addr = `0x${hex.slice(24)}` as Address
-  return /^0x0{40}$/.test(addr) ? undefined : addr
+  const hex = word.replace(/^0x/, "").padStart(64, "0");
+  const addr = `0x${hex.slice(24)}` as Address;
+  return /^0x0{40}$/.test(addr) ? undefined : addr;
 }
 
 /**
@@ -35,11 +35,15 @@ function slotToAddress(word: Hex): Address | undefined {
  * pinned block. Deterministic — the implementation address is on-chain state, not a guess.
  * Returns the implementation address, or undefined when no known slot is set.
  */
-export async function resolveProxy(publicClient: PublicClient, blockNumber: bigint, address: Address): Promise<Address | undefined> {
+export async function resolveProxy(
+  publicClient: PublicClient,
+  blockNumber: bigint,
+  address: Address,
+): Promise<Address | undefined> {
   for (const slot of Object.values(IMPL_SLOTS)) {
-    const word = (await publicClient.getStorageAt({ address, slot, blockNumber })) ?? "0x"
-    const impl = slotToAddress(word)
-    if (impl) return impl
+    const word = (await publicClient.getStorageAt({ address, slot, blockNumber })) ?? "0x";
+    const impl = slotToAddress(word);
+    if (impl) return impl;
   }
-  return undefined
+  return undefined;
 }

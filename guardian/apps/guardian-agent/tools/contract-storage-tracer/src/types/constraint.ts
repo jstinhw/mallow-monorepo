@@ -1,5 +1,5 @@
-import type { Address } from "viem"
-import type { Provenance } from "./common"
+import type { Address } from "viem";
+import type { Provenance } from "./common";
 
 /**
  * A precondition on the path to a storage touch (require / revert / modifier). A guard
@@ -7,10 +7,10 @@ import type { Provenance } from "./common"
  * fixed/stored address — that is what turns an open function into a bounded one.
  */
 export interface Guard {
-  readonly source: "require" | "revert-if" | "modifier" | "assembly" | "inferred"
-  readonly expression: string
-  readonly bindsCaller: boolean
-  readonly provenance: Provenance
+  readonly source: "require" | "revert-if" | "modifier" | "assembly" | "inferred";
+  readonly expression: string;
+  readonly bindsCaller: boolean;
+  readonly provenance: Provenance;
 }
 
 /**
@@ -23,12 +23,21 @@ export interface Guard {
  *  - unbounded      nothing binds msg.sender/key — ANYONE can touch it       → FLAGGED, not expanded
  */
 export type Boundedness =
-  | { readonly kind: "singleton"; readonly callers: readonly Address[]; readonly guards: readonly Guard[] }
-  | { readonly kind: "fixed-onchain"; readonly caller: Address; readonly slot: string; readonly guards: readonly Guard[] }
   | {
-      readonly kind: "role-set"
-      readonly roleVar: string
-      readonly enumeration: "events" | "trace" | "none"
-      readonly guards: readonly Guard[]
+      readonly kind: "singleton";
+      readonly callers: readonly Address[];
+      readonly guards: readonly Guard[];
     }
-  | { readonly kind: "unbounded"; readonly reason: string; readonly guards: readonly Guard[] }
+  | {
+      readonly kind: "fixed-onchain";
+      readonly caller: Address;
+      readonly slot: string;
+      readonly guards: readonly Guard[];
+    }
+  | {
+      readonly kind: "role-set";
+      readonly roleVar: string;
+      readonly enumeration: "events" | "trace" | "none";
+      readonly guards: readonly Guard[];
+    }
+  | { readonly kind: "unbounded"; readonly reason: string; readonly guards: readonly Guard[] };

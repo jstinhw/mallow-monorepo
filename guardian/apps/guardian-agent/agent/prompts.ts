@@ -1,7 +1,7 @@
-import type { Seed } from "../tools/contract-storage-tracer/src/schemas/seed"
-import type { Finding } from "./verdict"
-import type { ToolCallRecord } from "./tools"
-import { toolCatalog } from "./tools"
+import type { Seed } from "../tools/contract-storage-tracer/src/schemas/seed";
+import type { Finding } from "./verdict";
+import type { ToolCallRecord } from "./tools";
+import { toolCatalog } from "./tools";
 
 /**
  * Shared evidence model for both agents. The tracer's ground truth is WHICH storage the
@@ -17,7 +17,7 @@ How to read the evidence:
 - Do not claim arbitrary third-party execution when the route requires the affected account to be msg.sender or to provide a signature/key later.
 - Use the address book to name counterparties: a note, ENS, or label identifies a known contract — carry that exact name into your text; "unverified" means code without source; "undetermined" means no code and no activity.
 - When a decoded argument that controls how much an authorized party may move equals the type's maximum value, treat the grant as unlimited.
-- Do not invent facts, and do not write rules for specific function names, selectors, protocols, or addresses — infer from decoded calldata, written variables, routes, and the address book.`.trim()
+- Do not invent facts, and do not write rules for specific function names, selectors, protocols, or addresses — infer from decoded calldata, written variables, routes, and the address book.`.trim();
 
 export function analyzerSystemPrompt(maxRounds: number): string {
   return `
@@ -36,16 +36,18 @@ How to investigate:
 
 Respond with JSON only, no markdown, one object per turn:
 - To call tools: {"intent":"one short sentence on what this round answers","calls":[{"tool":"name","args":{...}}]}
-- To finish:    {"intent":"...","done":true,"summary":"2-4 sentence findings summary for the summarizer — your only chance to record conclusions"}`.trim()
+- To finish:    {"intent":"...","done":true,"summary":"2-4 sentence findings summary for the summarizer — your only chance to record conclusions"}`.trim();
 }
 
 export function analyzerOpeningPrompt(facts: Record<string, unknown>): string {
-  return `Trace facts:\n${JSON.stringify(facts)}\n\nBegin. Respond with JSON only.`
+  return `Trace facts:\n${JSON.stringify(facts)}\n\nBegin. Respond with JSON only.`;
 }
 
-export function analyzerToolResultsPrompt(results: readonly { readonly tool: string; readonly payload: unknown }[]): string {
-  const lines = results.map((r) => `${r.tool} → ${truncate(safeJson(r.payload), 4000)}`)
-  return `Tool results:\n${lines.join("\n")}\n\nContinue. Respond with JSON only.`
+export function analyzerToolResultsPrompt(
+  results: readonly { readonly tool: string; readonly payload: unknown }[],
+): string {
+  const lines = results.map((r) => `${r.tool} → ${truncate(safeJson(r.payload), 4000)}`);
+  return `Tool results:\n${lines.join("\n")}\n\nContinue. Respond with JSON only.`;
 }
 
 export function summarizerSystemPrompt(): string {
@@ -69,16 +71,16 @@ Risk calibration (floor: your risk must be at least the highest deterministic fi
 - medium: an unverified or undetermined counterparty on a route, undecoded calldata, a reverting seed call, partial coverage that hides reach, or an unlimited-magnitude grant to a known counterparty.
 - high: a written permission or asset-gating variable reachable by an unknown or unverified party without the signer's later signature; opaque routes to asset-moving code; an unlimited grant to an unknown party.
 - critical: the evidence proves an arbitrary third party can move the signer's assets or overwrite their storage with no further action from the signer.
-State important uncertainty plainly (unknown decimals, partial coverage, hypothesis-tagged annotations) instead of papering over it.`.trim()
+State important uncertainty plainly (unknown decimals, partial coverage, hypothesis-tagged annotations) instead of papering over it.`.trim();
 }
 
 export function summarizerUserPrompt(args: {
-  readonly seed: Seed
-  readonly facts: Record<string, unknown>
-  readonly findings: readonly Finding[]
-  readonly toolCalls: readonly ToolCallRecord[]
-  readonly investigation: string
-  readonly traceLog: readonly string[]
+  readonly seed: Seed;
+  readonly facts: Record<string, unknown>;
+  readonly findings: readonly Finding[];
+  readonly toolCalls: readonly ToolCallRecord[];
+  readonly investigation: string;
+  readonly traceLog: readonly string[];
 }): string {
   const lines: string[] = [
     `tx: chainId=${args.seed.chainId} from=${args.seed.from} to=${args.seed.to} calldata=${truncate(args.seed.calldata, 200)}`,
@@ -86,7 +88,9 @@ export function summarizerUserPrompt(args: {
     `trace facts:\n${JSON.stringify(args.facts)}`,
     "",
     "deterministic findings (your risk must be ≥ the highest severity here):",
-    ...args.findings.map((f) => `- [${f.severity}] ${f.id}: ${f.title} — ${truncate(f.detail, 200)}`),
+    ...args.findings.map(
+      (f) => `- [${f.severity}] ${f.id}: ${f.title} — ${truncate(f.detail, 200)}`,
+    ),
     "",
     `analyzer investigation: ${args.investigation || "(none)"}`,
     "",
@@ -98,18 +102,18 @@ export function summarizerUserPrompt(args: {
     "",
     // Keep the tail short: local-model prompt prefill is a real latency cost.
     `trace log tail:\n${args.traceLog.slice(-25).join("\n")}`,
-  ]
-  return lines.join("\n")
+  ];
+  return lines.join("\n");
 }
 
 function safeJson(value: unknown): string {
   try {
-    return JSON.stringify(value) ?? String(value)
+    return JSON.stringify(value) ?? String(value);
   } catch {
-    return "<unstringifiable>"
+    return "<unstringifiable>";
   }
 }
 
 function truncate(s: string, max: number): string {
-  return s.length <= max ? s : `${s.slice(0, max)}…(truncated)`
+  return s.length <= max ? s : `${s.slice(0, max)}…(truncated)`;
 }

@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const anchorTriageSchema = z.object({
   rankings: z
@@ -12,9 +12,9 @@ export const anchorTriageSchema = z.object({
       }),
     )
     .min(1),
-})
+});
 
-export type AnchorTriageResult = z.infer<typeof anchorTriageSchema>
+export type AnchorTriageResult = z.infer<typeof anchorTriageSchema>;
 
 export const opaqueHypothesisSchema = z.object({
   hypotheses: z.array(
@@ -26,6 +26,6 @@ export const opaqueHypothesisSchema = z.object({
       suggestedCheck: z.string().max(200).optional(),
     }),
   ),
-})
+});
 
-export type OpaqueHypothesisResult = z.infer<typeof opaqueHypothesisSchema>
+export type OpaqueHypothesisResult = z.infer<typeof opaqueHypothesisSchema>;
