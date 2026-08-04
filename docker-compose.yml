@@ -125,6 +125,29 @@ services:
     networks:
       - graviton
 
+  guardian-agent:
+    build:
+      context: .
+      dockerfile: guardian/apps/guardian-agent/Dockerfile
+    image: guardian-agent:local
+    container_name: guardian-agent
+    # Host 3003 because the quoter already owns 3002.
+    ports:
+      - "3003:3002"
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      ALCHEMY_API_KEY: ${ALCHEMY_API_KEY}
+      # Leave empty for deterministic-only verdicts. A model running on the host
+      # is reachable at http://host.docker.internal:1234/v1, not localhost.
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_MODEL: ${LLM_MODEL:-local-model}
+      LLM_API_KEY: ${LLM_API_KEY}
+    restart: unless-stopped
+    networks:
+      - graviton
+
 volumes:
   postgres_data:
   rabbitmq_data:
