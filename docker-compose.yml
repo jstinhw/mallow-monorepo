@@ -128,7 +128,7 @@ services:
   guardian-agent:
     build:
       context: .
-      dockerfile: guardian/apps/guardian-agent/Dockerfile
+      dockerfile: guardian/Dockerfile
     image: guardian-agent:local
     container_name: guardian-agent
     # Host 3003 because the quoter already owns 3002.

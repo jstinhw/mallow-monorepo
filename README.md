@@ -22,7 +22,8 @@ graviton/
   apps/relayer/       Order execution + worker
   apps/quoter/        Pricing and route quotes
 guardian/
-  apps/guardian-agent/  Fastify service; streams a risk verdict over SSE
+  agent/              Core agent — trace, analyze, verdict
+  app/                Fastify service; streams a risk verdict over SSE
 packages/
   agent-protocol/     Wire protocol between the wallet and agent services
 sdk/                  mallowallet
@@ -63,7 +64,7 @@ ABIs, zod schemas, chain constants.
 
 ## Guardian
 
-`guardian/apps/guardian-agent` takes a transaction request (or EIP-712 typed
+`guardian/` takes a transaction request (or EIP-712 typed
 data) before it is signed, simulates it against an Anvil fork, resolves the
 contracts involved via Sourcify and Etherscan, and streams a structured verdict:
 risk level, findings, decoded call, simulated balance and storage diffs.

@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
+    "dev": "tsx watch app/server.ts",
+    "start": "tsx app/server.ts",
     "trace": "tsx agent/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

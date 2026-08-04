@@ -62,7 +62,7 @@ pnpm release             # builds and publishes, prompts for 2FA
 ## Adding a package
 
 Put it under the project it belongs to (`graviton/apps/*`,
-`graviton/packages/*`, `guardian/apps/*`) or in `packages/` if more than one
+`graviton/packages/*`) or in `packages/` if more than one
 project uses it. Mark it `"private": true` unless it is meant to be published.
 Give it `build`, `test`, `typecheck` and `lint` scripts so Turbo can see it.
 

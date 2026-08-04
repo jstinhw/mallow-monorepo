@@ -1,5 +1,5 @@
 # Build from the monorepo root:
-#   docker build -f guardian/apps/guardian-agent/Dockerfile -t guardian-agent .
+#   docker build -f guardian/Dockerfile -t guardian-agent .
 
 FROM node:24-alpine AS base
 RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
@@ -14,7 +14,7 @@ COPY graviton/packages/core/package.json ./graviton/packages/core/
 COPY graviton/apps/quoter/package.json ./graviton/apps/quoter/
 COPY graviton/apps/relayer/package.json ./graviton/apps/relayer/
 COPY graviton/apps/server/package.json ./graviton/apps/server/
-COPY guardian/apps/guardian-agent/package.json ./guardian/apps/guardian-agent/
+COPY guardian/package.json ./guardian/
 COPY packages/agent-protocol/package.json ./packages/agent-protocol/
 COPY sdk/package.json ./sdk/
 COPY wallet/package.json ./wallet/
@@ -37,15 +37,15 @@ RUN pnpm install --frozen-lockfile --filter "@mallow/guardian-agent-service..." 
   && chown -R node:node /app
 
 COPY --chown=node:node tsconfig.base.json ./
-COPY --chown=node:node guardian/apps/guardian-agent ./guardian/apps/guardian-agent
+COPY --chown=node:node guardian ./guardian
 
 ENV NODE_ENV=production
 USER node
-WORKDIR /app/guardian/apps/guardian-agent
+WORKDIR /app/guardian
 
 EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3002)+'/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["pnpm", "exec", "tsx", "src/server.ts"]
+CMD ["pnpm", "exec", "tsx", "app/server.ts"]
