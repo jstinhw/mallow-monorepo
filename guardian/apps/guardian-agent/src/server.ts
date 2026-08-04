@@ -1,15 +1,9 @@
+import "dotenv/config";
 import { buildServer } from "./app";
-
-const PORT = Number(process.env.PORT ?? 3002);
 
 const app = buildServer();
 
-app
-  .listen({ port: PORT, host: "0.0.0.0" })
-  .then(() => {
-    console.log(`guardian agent service listening on http://localhost:${PORT}`);
-  })
-  .catch((err) => {
-    app.log.error(err);
-    process.exit(1);
-  });
+app.listen({ port: Number(process.env.PORT ?? 3002), host: "0.0.0.0" }).catch((error: unknown) => {
+  app.log.error(error);
+  process.exit(1);
+});
