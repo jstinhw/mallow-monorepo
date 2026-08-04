@@ -15,7 +15,7 @@ COPY graviton/packages/core/package.json ./graviton/packages/core/
 COPY graviton/apps/quoter/package.json ./graviton/apps/quoter/
 COPY graviton/apps/relayer/package.json ./graviton/apps/relayer/
 COPY graviton/apps/server/package.json ./graviton/apps/server/
-COPY guardian/apps/guardian-agent/package.json ./guardian/apps/guardian-agent/
+COPY guardian/package.json ./guardian/
 COPY packages/agent-protocol/package.json ./packages/agent-protocol/
 COPY sdk/package.json ./sdk/
 COPY wallet/package.json ./wallet/
