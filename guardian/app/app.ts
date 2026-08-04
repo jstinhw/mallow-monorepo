@@ -1,5 +1,6 @@
 import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
+import type { OutgoingHttpHeaders } from "node:http";
 import {
   analyzeTransactionRequest,
   transactionRequestSchema,
@@ -48,6 +49,9 @@ export function buildServer(analyze: AnalyzeFn = analyzeTransactionRequest): Fas
     const seed = parsed.data;
 
     reply.raw.writeHead(200, {
+      // Writing to the raw socket skips Fastify's reply, so the CORS headers the
+      // plugin set there have to be carried over by hand or the browser blocks the stream.
+      ...(reply.getHeaders() as OutgoingHttpHeaders),
       "content-type": "text/event-stream",
       "cache-control": "no-cache",
       connection: "keep-alive",
