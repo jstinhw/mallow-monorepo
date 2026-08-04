@@ -1,6 +1,6 @@
 # contract-storage-tracer
 
-Given a **concrete call** — `{ chainId, from, to, calldata }` — compute every **route**
+Given a **concrete call** — `{ chainId, from, to, data }` — compute every **route**
 and every **compressed contract** that can touch the **same storage** as that call,
 recursively across contracts, and **explicitly flag any frontier that is unbounded**.
 
@@ -90,7 +90,7 @@ npm run typecheck
 npm run trace -- --chain 1 \
   --from  0x<owner> \
   --to    0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 \
-  --calldata 0x095ea7b3...   # approve(spender, amount)  — or any calldata
+  --data 0x095ea7b3...   # approve(spender, amount)  — or any calldata
 
 # options: --block <n> (pin a block) · --anchor <var> (trace one written variable) · --no-llm
 ```

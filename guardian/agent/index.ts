@@ -4,7 +4,7 @@ import { analyzeTransactionRequest } from "./agent";
 import { formatVerdictReport, writeAgentOutputs } from "./output";
 
 const USAGE =
-  "usage: npm run trace -- --chain <id> --from <addr> --to <addr> --calldata <0x..> [--block <n>] [--anchor <var>] [--no-llm] [--out-dir out]\n" +
+  "usage: npm run trace -- --chain <id> --from <addr> --to <addr> --data <0x..> [--block <n>] [--anchor <var>] [--no-llm] [--out-dir out]\n" +
   "   or: npm run trace -- --request request.json";
 
 function readFlag(argv: readonly string[], flag: string): string | undefined {
@@ -18,8 +18,8 @@ function requestFromArgs(argv: readonly string[]): unknown {
 
   const from = readFlag(argv, "--from");
   const to = readFlag(argv, "--to");
-  const calldata = readFlag(argv, "--calldata");
-  if (!from || !to || !calldata) throw new Error(USAGE);
+  const data = readFlag(argv, "--data");
+  if (!from || !to || !data) throw new Error(USAGE);
 
   const block = readFlag(argv, "--block");
   const anchor = readFlag(argv, "--anchor");
@@ -27,7 +27,7 @@ function requestFromArgs(argv: readonly string[]): unknown {
     chainId: Number(readFlag(argv, "--chain") ?? "1"),
     from,
     to,
-    calldata,
+    data,
     ...(block ? { block: Number(block) } : {}),
     ...(anchor ? { anchor } : {}),
     noLlm: argv.includes("--no-llm"),

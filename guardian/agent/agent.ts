@@ -26,9 +26,31 @@ import {
   type VerdictLlmOutput,
 } from "./verdict";
 
+/** Wallets send `value` as hex or decimal; anything unparseable is not zero. */
+function isZeroValue(value: string | number | undefined): boolean {
+  if (value === undefined) return true;
+  try {
+    return BigInt(value) === 0n;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The request is the EIP-1193 tx shape a wallet already holds, so it posts its object as-is.
+ *
+ * A value-bearing call is rejected rather than traced: the tracer observes through eth_call /
+ * debug_traceCall and never passes `value` (acquire/observe.ts), so a payable seed would be
+ * traced down the `msg.value == 0` path and the verdict would describe a different call.
+ */
 export const transactionRequestSchema = seedSchema.extend({
   anchor: z.string().optional(),
   noLlm: z.boolean().optional(),
+  // ponytail: rejected, not supported. Thread `value` into observe.ts's call objects to trace it.
+  value: z
+    .union([z.string(), z.number()])
+    .optional()
+    .refine(isZeroValue, "value-bearing calls are not traced; send value 0"),
 });
 
 export type TransactionRequest = z.infer<typeof transactionRequestSchema>;
@@ -269,7 +291,7 @@ export async function analyzeTransactionRequest(
   options: AgentHooks & { readonly provider?: ModelProvider } = {},
 ): Promise<AgentReport> {
   const request = transactionRequestSchema.parse(input);
-  const { anchor, noLlm, ...seed } = request;
+  const { anchor, noLlm, value: _value, ...seed } = request;
   const t0 = Date.now();
 
   const log = createMemoryTraceLogger(options.onProgress && ((line) => options.onProgress?.(line)));

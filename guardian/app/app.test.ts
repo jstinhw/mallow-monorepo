@@ -6,7 +6,8 @@ const VALID_BODY = {
   chainId: 1,
   from: "0x28C6c06298d514Db089934071355E5743bf21d60",
   to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-  calldata: "0x095ea7b3",
+  value: "0x0",
+  data: "0x095ea7b3",
 };
 
 const fakeVerdict = {
@@ -70,5 +71,28 @@ describe("POST /check", () => {
     });
 
     expect(res.statusCode).toBe(400);
+  });
+
+  it("rejects a body still using the old `calldata` spelling", async () => {
+    const { data, ...rest } = VALID_BODY;
+    const res = await buildServer(fakeAnalyze).inject({
+      method: "POST",
+      url: "/check",
+      payload: { ...rest, calldata: data },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().issues).toContain("data: Required");
+  });
+
+  it("rejects a value-bearing call, which the tracer cannot observe", async () => {
+    const res = await buildServer(fakeAnalyze).inject({
+      method: "POST",
+      url: "/check",
+      payload: { ...VALID_BODY, value: "1000000000000000000" },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().issues).toContain("value: value-bearing calls are not traced; send value 0");
   });
 });

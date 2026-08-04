@@ -278,14 +278,14 @@ export async function resolveSeed(
     `${target.contractName}${target.implementation ? ` (impl ${target.implementation})` : ""} · ${target.compiled.storage.length} storage vars`,
   );
 
-  const call = await decodeSeedCall(seed.calldata as Hex, target.compiled.abi, log);
+  const call = await decodeSeedCall(seed.data as Hex, target.compiled.abi, log);
   log.step(
     `decode calldata · ${call.functionName}${call.args.length ? `(${call.args.length} args)` : ""} · via ${call.source}`,
   );
 
   log.step(`observe storage · simulate at pinned block`);
   const observation = await session.observer.observe(
-    { from: seed.from as Address, to: seed.to as Address, calldata: seed.calldata as Hex },
+    { from: seed.from as Address, to: seed.to as Address, data: seed.data as Hex },
     session.blockNumber,
   );
   log.sub(

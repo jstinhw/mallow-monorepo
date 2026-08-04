@@ -19,7 +19,7 @@ import {
 export interface ObserveSeed {
   readonly from: Address;
   readonly to: Address;
-  readonly calldata: Hex;
+  readonly data: Hex;
 }
 
 export interface SlotObservation {
@@ -131,7 +131,7 @@ async function detectRevert(
   blockNumber: bigint,
 ): Promise<boolean> {
   try {
-    await publicClient.call({ account: seed.from, to: seed.to, data: seed.calldata, blockNumber });
+    await publicClient.call({ account: seed.from, to: seed.to, data: seed.data, blockNumber });
     return false;
   } catch (err) {
     const name = (err as { name?: string })?.name ?? "";
@@ -151,7 +151,7 @@ export function createObserver(publicClient: PublicClient): StorageObserver {
     blockNumber: bigint,
   ): Promise<readonly SlotObservation[] | undefined> {
     if (debugSupported === false) return undefined;
-    const callObj = { from: seed.from, to: seed.to, data: seed.calldata };
+    const callObj = { from: seed.from, to: seed.to, data: seed.data };
     try {
       const raw = await withTimeout(
         request({
@@ -204,7 +204,7 @@ export function createObserver(publicClient: PublicClient): StorageObserver {
       const raw = await withTimeout(
         request({
           method: "eth_createAccessList",
-          params: [{ from: seed.from, to: seed.to, data: seed.calldata }, toHex(blockNumber)],
+          params: [{ from: seed.from, to: seed.to, data: seed.data }, toHex(blockNumber)],
         }),
         TRACE_TIMEOUT_MS,
       );
