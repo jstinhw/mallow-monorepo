@@ -28,4 +28,4 @@ export const LAYERZERO_ADAPTER: Address = '0x9DB22E287f842EA2732bFB21d055E6ceF6f
 /**
  * Graviton API URL
  */
-export const GRAVITON_API_URL = 'https://api.graviton.zone/v1';
+export const GRAVITON_API_URL = 'https://api.graviton.mallowallet.com/v1';
