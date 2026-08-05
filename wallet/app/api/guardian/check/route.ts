@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 const guardianAgentUrl = () =>
-  process.env.NEXT_PUBLIC_GUARDIAN_AGENT_URL ?? "http://localhost:3002";
+  process.env.NEXT_PUBLIC_GUARDIAN_AGENT_URL ?? "http://localhost:3003";
 
 export async function POST(req: Request) {
   const bodyText = await req.text();

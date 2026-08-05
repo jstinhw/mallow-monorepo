@@ -81,7 +81,7 @@ describe("useApprovalQueue.submitAgentInstallReview", () => {
     });
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:3002/check");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:3003/check");
   });
 
   it("surfaces guardian service error responses", async () => {
@@ -131,7 +131,7 @@ describe("useApprovalQueue.submitAgentInstallReview", () => {
 
     await waitFor(() => expect(result.current.byId(id)?.live?.stage).toBe("error"));
     expect(result.current.byId(id)?.live?.error).toBe(
-      "guardian service unreachable at http://localhost:3002/check",
+      "guardian service unreachable at http://localhost:3003/check",
     );
   });
 });
