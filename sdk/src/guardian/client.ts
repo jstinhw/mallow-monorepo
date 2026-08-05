@@ -18,7 +18,7 @@ export class GuardianError extends Error {
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 export type GuardianClientConfig = {
-  /** Base URL of the guardian-agent service, e.g. `http://localhost:3002`. */
+  /** Base URL of the guardian-agent service, e.g. `http://localhost:3003`. */
   url: string;
   /** Injectable for tests / non-browser runtimes. Defaults to global `fetch`. */
   fetch?: FetchLike;
@@ -79,7 +79,7 @@ function parseBlock(block: string): SseMessage | null {
  * progress and resolves with its final verdict.
  *
  * ```ts
- * const guardian = createGuardianClient({ url: 'http://localhost:3002' })
+ * const guardian = createGuardianClient({ url: 'http://localhost:3003' })
  * const verdict = await guardian.check(request, {
  *   onProgress: (e) => console.log(e.stage),
  * })

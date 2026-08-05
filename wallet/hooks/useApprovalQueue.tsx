@@ -38,7 +38,7 @@ type SubmitSignatureArgs = SignatureReview;
 const guardianCheckUrl = () =>
   new URL(
     "/check",
-    process.env.NEXT_PUBLIC_GUARDIAN_AGENT_URL ?? "http://localhost:3002",
+    process.env.NEXT_PUBLIC_GUARDIAN_AGENT_URL ?? "http://localhost:3003",
   ).toString();
 
 const guardianServiceError = async (res: Response) => {

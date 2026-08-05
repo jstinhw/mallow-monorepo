@@ -11,7 +11,7 @@ export const AGENT_PLUGINS: Record<string, AgentPluginRegistryEntry> = {
     id: "guardian",
     name: "Guardian",
     description: "Reviews every transaction before you sign.",
-    serviceUrl: process.env.NEXT_PUBLIC_GUARDIAN_AGENT_URL ?? "http://localhost:3002",
+    serviceUrl: process.env.NEXT_PUBLIC_GUARDIAN_AGENT_URL ?? "http://localhost:3003",
     agentKey: "guardian",
   },
   "auto-invest": {
