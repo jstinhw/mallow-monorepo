@@ -17,6 +17,13 @@ export interface ModelRequest {
   readonly temperature?: number;
   /** When set, the provider streams the response and reports each delta as it arrives. */
   readonly onDelta?: (delta: ModelDelta) => void;
+  /**
+   * Called once if the call has to wait for another in-flight call to the same model server,
+   * so a caller streaming progress can say "queued" rather than looking hung.
+   */
+  readonly onQueued?: () => void;
+  /** Aborts the in-flight request, releasing the model server's slot for the next caller. */
+  readonly signal?: AbortSignal;
 }
 
 /**

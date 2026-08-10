@@ -23,6 +23,9 @@ export async function fetchWithBackoff(
     } catch (error) {
       if (attempt >= retries) throw error;
     }
+    // An abort is a decision, not a flaky network: retrying it would hold the caller's
+    // resources for three more round-trips after they already gave up.
+    if (init?.signal?.aborted) throw new Error("request aborted");
     const delay = baseMs * 2 ** attempt * (0.5 + Math.random() * 0.5);
     await new Promise((resolve) => setTimeout(resolve, delay));
   }

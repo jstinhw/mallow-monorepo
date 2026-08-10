@@ -6,6 +6,7 @@ import {
   type ModelDelta,
   type ModelMessage,
   type ModelProvider,
+  type ModelRequest,
 } from "../tools/contract-storage-tracer/src/llm/provider";
 import type { StepLogger } from "../tools/contract-storage-tracer/src/log";
 import { seedSchema, type Seed } from "../tools/contract-storage-tracer/src/schemas/seed";
@@ -73,10 +74,27 @@ export interface AgentReport {
 
 const MAX_ROUNDS = 3;
 const MAX_CALLS_PER_ROUND = 3;
-// Bounds a reasoning model's thinking time per call (local 27B ≈ 10-20 tok/s: 2500 ≈ 2-4 min worst case).
-const MAX_LLM_TOKENS = 2500;
-// The summarizer is the one call that must succeed and reasons over the largest prompt; give it headroom.
-const SUMMARIZER_MAX_TOKENS = 5000;
+
+/**
+ * Completion budgets, read from env like the rest of the model connection in `defaultProvider`,
+ * because the ceiling is a property of the deployment, not of this code: a local server loads a
+ * model with a fixed context (LM Studio defaults to 4096 regardless of what the weights support)
+ * and refuses outright any request whose `max_tokens` exceeds it. A budget picked for a hosted
+ * large-context model therefore fails 100% of the time locally — and, since the failure arrives
+ * as an empty completion, used to look like a parse error rather than a rejected request.
+ * Defaults fit a 4096-token context; raise both for a model served with more.
+ */
+const tokenBudget = (name: string, fallback: number): number => {
+  const configured = Number(process.env[name]);
+  return Number.isInteger(configured) && configured > 0 ? configured : fallback;
+};
+
+// Also bounds a reasoning model's thinking time per call (local 27B ≈ 10-20 tok/s: 2500 ≈ 2-4 min).
+const MAX_LLM_TOKENS = tokenBudget("LLM_ANALYZER_MAX_TOKENS", 2500);
+// The summarizer is the one call that must succeed and reasons over the largest prompt, so it wants
+// headroom — but it only gets what the served context allows, and the compact-prompt retry below
+// covers the overflow. Same default as the analyzer, which this deployment is known to serve.
+const SUMMARIZER_MAX_TOKENS = tokenBudget("LLM_SUMMARIZER_MAX_TOKENS", 2500);
 
 /** Live progress hooks so a caller (e.g. the CLI) can show what's happening while the model runs. */
 export interface AgentHooks {
@@ -84,7 +102,24 @@ export interface AgentHooks {
   readonly onProgress?: (line: string) => void;
   /** Raw streamed LLM tokens (reasoning + content) as they arrive. */
   readonly onDelta?: (delta: ModelDelta) => void;
+  /**
+   * Aborts the model turns when the caller goes away. Without it an abandoned check keeps the
+   * gate's single model slot for minutes, so the next check queues behind a run nobody wants.
+   */
+  readonly signal?: AbortSignal;
 }
+
+/**
+ * The model server takes one call at a time (see the gate in `llm/openai-compat`), so a second
+ * concurrent check waits here. Say so, or the stream looks hung for the length of the other run.
+ */
+const QUEUED_LINE = "another check is using the model — queued, waiting for a slot…";
+
+const llmHooks = (hooks: AgentHooks): Pick<ModelRequest, "onDelta" | "onQueued" | "signal"> => ({
+  ...(hooks.onDelta ? { onDelta: hooks.onDelta } : {}),
+  ...(hooks.onProgress ? { onQueued: () => hooks.onProgress?.(QUEUED_LINE) } : {}),
+  ...(hooks.signal ? { signal: hooks.signal } : {}),
+});
 
 const analyzerActionSchema = z.object({
   intent: z.string().max(400).default(""),
@@ -166,7 +201,7 @@ export async function runAnalyzer(
   const request = {
     temperature: 0,
     maxTokens: MAX_LLM_TOKENS,
-    ...(hooks.onDelta ? { onDelta: hooks.onDelta } : {}),
+    ...llmHooks(hooks),
   };
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {
@@ -239,7 +274,7 @@ export async function runSummarizer(
       {
         temperature: 0,
         maxTokens: SUMMARIZER_MAX_TOKENS,
-        ...(hooks.onDelta ? { onDelta: hooks.onDelta } : {}),
+        ...llmHooks(hooks),
         messages: [
           { role: "system", content: summarizerSystemPrompt() },
           { role: "user", content: userContent },
