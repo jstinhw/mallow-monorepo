@@ -1,0 +1,53 @@
+#!/bin/sh
+# Runs the check suite after a commit lands.
+#
+# Git ignores a post-commit hook's exit code, so this reports — it cannot gate the commit that
+# just happened. Treat a FAIL as "amend or follow up", not as "the commit was rejected".
+#
+# Two jobs, not five: `turbo run` already fans its four tasks across every workspace package in
+# parallel, resolves the `^build` ordering between them, and caches the results — running them as
+# separate concurrent turbo processes would duplicate the upstream builds and contend on the
+# daemon. Prettier is the only check turbo does not own, so it is the only one needing its own slot.
+#
+# Skip with:  SKIP_POST_COMMIT=1 git commit …
+set -u
+
+[ "${SKIP_POST_COMMIT:-}" = "1" ] && exit 0
+
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$root" || exit 0
+
+out=$(mktemp -d) || exit 0
+trap 'rm -rf "$out"' EXIT
+
+printf '\npost-commit checks — %s\n' "$(git rev-parse --short HEAD)"
+
+# --check, never --write: rewriting files here would leave the tree dirty against the commit that
+# just landed, so what you committed would no longer be what is on disk.
+pnpm format:check >"$out/format" 2>&1 &
+fmt=$!
+pnpm exec turbo run lint typecheck test build --output-logs=errors-only >"$out/turbo" 2>&1 &
+trb=$!
+
+wait "$fmt"
+fmt_rc=$?
+wait "$trb"
+trb_rc=$?
+
+report() {
+  if [ "$1" -eq 0 ]; then
+    printf '  ok    %s\n' "$2"
+  else
+    printf '  FAIL  %s\n' "$2"
+    tail -40 "$3" | sed 's/^/        /'
+  fi
+}
+
+report "$fmt_rc" 'format                          (prettier)' "$out/format"
+report "$trb_rc" 'lint · typecheck · test · build (turbo)' "$out/turbo"
+
+if [ "$fmt_rc" -ne 0 ] || [ "$trb_rc" -ne 0 ]; then
+  printf '\n  the commit stands; fix and `git commit --amend` or follow up.\n\n'
+fi
+
+exit 0

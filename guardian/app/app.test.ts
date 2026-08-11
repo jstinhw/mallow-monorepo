@@ -202,7 +202,8 @@ describe("concurrent checks sharing one model server", () => {
   });
 
   it("surfaces an in-band stream error instead of returning empty content", async () => {
-    const refuse = (async () => new Response(sseRefused, { status: 200 })) as unknown as typeof fetch;
+    const refuse = (async () =>
+      new Response(sseRefused, { status: 200 })) as unknown as typeof fetch;
 
     await expect(complete("http://model.test/in-band", refuse)).rejects.toThrow(
       "Context size has been exceeded",
@@ -236,7 +237,11 @@ describe("abandoned checks release the model slot", () => {
     // Without the abort check this retries 3 more times, holding the gate's one slot
     // through three backoff sleeps after the caller is already gone.
     await expect(
-      fetchWithBackoff("http://model.test/v1", { signal: controller.signal }, { fetchFn, baseMs: 1 }),
+      fetchWithBackoff(
+        "http://model.test/v1",
+        { signal: controller.signal },
+        { fetchFn, baseMs: 1 },
+      ),
     ).rejects.toThrow(/request aborted/);
     expect(calls).toBe(1);
   });

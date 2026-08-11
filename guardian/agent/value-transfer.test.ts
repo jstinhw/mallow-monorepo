@@ -130,7 +130,11 @@ describe("untraceable target", () => {
       contracts: async () => ({
         kind,
         address: TO,
-        enrichment: { nonce: kind === "eoa" ? 12 : 0, sentTxs: kind === "eoa", tags: { labels: [] } },
+        enrichment: {
+          nonce: kind === "eoa" ? 12 : 0,
+          sentTxs: kind === "eoa",
+          tags: { labels: [] },
+        },
       }),
       observer: { observe: async () => ({ source: "static", slots: [], reverted: false }) },
     }) as unknown as TraceSession;
