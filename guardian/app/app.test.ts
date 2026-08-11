@@ -222,6 +222,21 @@ describe("concurrent checks sharing one model server", () => {
       /no content \(finish_reason stop, 3 chars of reasoning, max_tokens 2048\)/,
     );
   });
+
+  it("tolerates a trailing slash on the configured base URL", async () => {
+    // `LLM_BASE_URL=…/v1/` posted to `/v1//chat/completions`, which servers 404 — and since an
+    // unreachable model degrades to the deterministic verdict by design, it looked like the LLM
+    // was simply switched off rather than one character misconfigured.
+    const urls: string[] = [];
+    const fetchFn = (async (url: string) => {
+      urls.push(url);
+      return new Response(sseOk, { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await complete("http://model.test/v1/", fetchFn);
+
+    expect(urls[0]).toBe("http://model.test/v1/chat/completions");
+  });
 });
 
 describe("abandoned checks release the model slot", () => {

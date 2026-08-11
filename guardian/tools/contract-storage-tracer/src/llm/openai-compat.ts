@@ -146,6 +146,10 @@ async function readSseStream(
  * itself unchanged. This is how the project stays model-agnostic and local-first.
  */
 export function createOpenAiCompatProvider(cfg: OpenAiCompatConfig): ModelProvider {
+  // A base URL configured as `…/v1/` would otherwise POST to `/v1//chat/completions`, which every
+  // server in this list 404s. The failure is silent — an unreachable model degrades to the
+  // deterministic verdict by design — so it reads as "the LLM is off", not "the URL has a typo".
+  const endpoint = `${cfg.baseUrl.replace(/\/+$/, "")}/chat/completions`;
   // Structured output is prompt-driven (the task prompts demand JSON-only, and `extractJsonObject`
   // tolerates fences/preamble) rather than relying on `response_format`, whose accepted values
   // differ across servers (LM Studio's newer API rejects `json_object`, wanting `json_schema`).
@@ -154,7 +158,7 @@ export function createOpenAiCompatProvider(cfg: OpenAiCompatConfig): ModelProvid
     let res: Response;
     try {
       res = await fetchWithBackoff(
-        `${cfg.baseUrl}/chat/completions`,
+        endpoint,
         {
           method: "POST",
           headers: {

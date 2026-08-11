@@ -124,7 +124,13 @@ export function defaultProvider(): ModelProvider {
   });
 }
 
-function createMemoryTraceLogger(echo?: (line: string) => void): {
+/**
+ * Collects the tracer's step log in memory. It is *not* echoed to `onProgress`: these lines are
+ * the summarizer's evidence, written for a model reading a whole trace at once, and a caller
+ * watching a review screen gets nothing from `-> source static · 0 slots touched`. The agent
+ * emits its own progress separately; the full log still reaches the report and `--out-dir`.
+ */
+function createMemoryTraceLogger(): {
   readonly logger: StepLogger;
   readonly lines: string[];
 } {
@@ -132,7 +138,6 @@ function createMemoryTraceLogger(echo?: (line: string) => void): {
   let n = 0;
   const push = (line: string): void => {
     lines.push(line);
-    echo?.(line);
   };
   return {
     lines,
@@ -312,7 +317,7 @@ export async function analyzeTransactionRequest(
   const { anchor, noLlm, ...seed } = request;
   const t0 = Date.now();
 
-  const log = createMemoryTraceLogger(options.onProgress && ((line) => options.onProgress?.(line)));
+  const log = createMemoryTraceLogger();
   options.onProgress?.("tracing storage writes (deterministic)…");
   // The tracer's internal advisory LLM (anchor triage / opaque hypotheses) is always off here:
   // this agent's analyzer+summarizer IS the advisory layer, and doubling it doubles model latency.
