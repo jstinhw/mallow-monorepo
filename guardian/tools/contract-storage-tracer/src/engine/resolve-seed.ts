@@ -3,7 +3,7 @@ import type { Anchor, KeyProvenance, MappingKey } from "../types/anchor";
 import type { Seed } from "../schemas/seed";
 import type { VerifiedContract } from "../acquire/contract";
 import { decodeSeedCall, type DecodedCall } from "../acquire/decode";
-import type { SlotObservation, StorageObservation } from "../acquire/observe";
+import { observeSeed, type SlotObservation, type StorageObservation } from "../acquire/observe";
 import type { StorageLayoutItem } from "../analyze/compile";
 import { analyzeAnchor, type AnchorAnalysis } from "../analyze/anchor-analyzer";
 import { attributeSlots, type AttributedSlot, type PathSegment } from "../analyze/attribute";
@@ -284,10 +284,7 @@ export async function resolveSeed(
   );
 
   log.step(`observe storage · simulate at pinned block`);
-  const observation = await session.observer.observe(
-    { from: seed.from as Address, to: seed.to as Address, data: seed.data as Hex },
-    session.blockNumber,
-  );
+  const observation = await session.observer.observe(observeSeed(seed), session.blockNumber);
   log.sub(
     `source ${observation.source}${observation.reverted ? " · call reverts" : ""} · ${observation.slots.length} slots touched`,
   );

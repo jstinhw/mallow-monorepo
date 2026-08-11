@@ -1,7 +1,8 @@
 import { z } from "zod";
-import type {
-  TraceReport,
-  UnboundedFrontier,
+import {
+  NO_CALLDATA,
+  type TraceReport,
+  type UnboundedFrontier,
 } from "../tools/contract-storage-tracer/src/types/report";
 
 export const RISK_LEVELS = ["info", "low", "medium", "high", "critical"] as const;
@@ -69,6 +70,9 @@ export function decisionFor(risk: RiskLevel): Decision {
   return "reject";
 }
 
+/** A bare value transfer carries no calldata — there is nothing to decode, and nothing opaque. */
+const hasCalldata = (decoded: TraceReport["decoded"]): boolean => decoded.selector !== NO_CALLDATA;
+
 function dedupeFrontiers(frontiers: readonly UnboundedFrontier[]): readonly UnboundedFrontier[] {
   const seen = new Map<string, UnboundedFrontier>();
   for (const f of frontiers) if (!seen.has(f.node)) seen.set(f.node, f);
@@ -93,7 +97,7 @@ export function deterministicFindings(trace: TraceReport): readonly Finding[] {
     });
   }
 
-  if (trace.decoded.source === "unknown") {
+  if (trace.decoded.source === "unknown" && hasCalldata(trace.decoded)) {
     findings.push({
       id: "calldata-undecoded",
       severity: "medium",
@@ -102,12 +106,38 @@ export function deterministicFindings(trace: TraceReport): readonly Finding[] {
     });
   }
 
+  // Sending to an address that has never transacted is the classic mistyped-recipient shape:
+  // it is equally an unused EOA, a typo, or an undeployed contract, and value sent to the
+  // second is gone. The tracer cannot tell these apart, which is exactly why it must be said.
+  const undetermined = trace.addresses.filter((a) => a.classification === "undetermined");
+  if (undetermined.length > 0) {
+    findings.push({
+      id: "undetermined-counterparty",
+      severity: "medium",
+      title: `${undetermined.length} counterpart${undetermined.length === 1 ? "y has" : "ies have"} no code and no transaction history`,
+      detail: `${undetermined.map((a) => a.address).join(", ")} — an unused EOA, a mistyped address, or an undeployed contract; value sent here may be unrecoverable.`,
+    });
+  }
+
+  // EIP-7702: an account with a delegate runs code on receipt, and the delegate can be
+  // reassigned per transaction — so "it's just an EOA" is not a safe reading of this recipient.
+  const delegated = trace.addresses.filter((a) => a.delegation);
+  if (delegated.length > 0) {
+    findings.push({
+      id: "delegated-eoa-counterparty",
+      severity: "low",
+      title: `${delegated.length} counterpart${delegated.length === 1 ? "y is a" : "ies are"} EIP-7702 delegated EOA${delegated.length === 1 ? "" : "s"}`,
+      detail: delegated.map((a) => `${a.address} → ${a.delegation}`).join(", "),
+    });
+  }
+
   const unverified = trace.addresses.filter((a) => a.classification === "unverified");
   if (unverified.length > 0) {
     findings.push({
       id: "unverified-contract-in-reach",
       severity: "medium",
-      title: `${unverified.length} unverified contract${unverified.length === 1 ? "" : "s"} can reach written storage`,
+      // Without anchors nothing was traced, so "can reach written storage" would overclaim.
+      title: `${unverified.length} unverified contract${unverified.length === 1 ? "" : "s"} ${trace.anchors.length === 0 ? "involved in the call" : "can reach written storage"}`,
       detail: unverified.map((a) => a.address).join(", "),
     });
   }
@@ -153,9 +183,11 @@ export function buildChecks(trace: TraceReport): readonly VerdictCheck[] {
   return [
     {
       kind: "decode",
-      ok: trace.decoded.source !== "unknown",
+      ok: !hasCalldata(trace.decoded) || trace.decoded.source !== "unknown",
       title: "Calldata decoded",
-      detail: `${trace.decoded.functionName} (${trace.decoded.selector}) via ${trace.decoded.source}`,
+      detail: hasCalldata(trace.decoded)
+        ? `${trace.decoded.functionName} (${trace.decoded.selector}) via ${trace.decoded.source}`
+        : "no calldata — a plain value transfer, nothing to decode",
     },
     {
       kind: "observe",

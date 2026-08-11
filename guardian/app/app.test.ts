@@ -130,15 +130,34 @@ describe("POST /check", () => {
     expect(res.payload).toContain("Must be authenticated!");
   });
 
-  it("rejects a value-bearing call, which the tracer cannot observe", async () => {
+  it("accepts a value-bearing call and passes the value to the agent", async () => {
+    const seen: unknown[] = [];
+    const res = await buildServer(async (input, hooks) => {
+      seen.push(input);
+      return fakeAnalyze(input, hooks);
+    }).inject({
+      method: "POST",
+      url: "/check",
+      // A plain ETH transfer: value, no calldata — the most common tx a wallet signs.
+      payload: { ...VALID_BODY, value: "10000000000000000", data: "0x" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(events(res.payload)).toEqual(["progress", "delta", "verdict"]);
+    expect(seen[0]).toMatchObject({ value: "10000000000000000", data: "0x" });
+  });
+
+  it("rejects a value that is not a wei amount", async () => {
     const res = await buildServer(fakeAnalyze).inject({
       method: "POST",
       url: "/check",
-      payload: { ...VALID_BODY, value: "1000000000000000000" },
+      payload: { ...VALID_BODY, value: "1.5" },
     });
 
     expect(res.statusCode).toBe(400);
-    expect(res.json().issues).toContain("value: value-bearing calls are not traced; send value 0");
+    expect(res.json().issues).toContain(
+      "value: must be a non-negative amount of wei (hex or decimal)",
+    );
   });
 });
 

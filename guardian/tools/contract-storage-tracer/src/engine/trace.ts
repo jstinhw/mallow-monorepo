@@ -1,4 +1,4 @@
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, type Address } from "viem";
 import type { Seed } from "../schemas/seed";
 import type { TraceReport } from "../types/report";
 import { createContractLoader } from "../acquire/contract-cache";
@@ -13,6 +13,7 @@ import { assembleReport } from "./assemble-report";
 import { classifyTouchers } from "./classify-touchers";
 import { recurseCallers } from "./recurse-callers";
 import { resolveSeed } from "./resolve-seed";
+import { untraceableReport } from "./untraceable";
 import type { TraceSession } from "./session";
 
 export interface TraceOptions {
@@ -61,6 +62,12 @@ export async function executeTrace(
     ...(llm ? { llm } : {}),
     log: logger,
   };
+
+  // Cheap and memoized (the loader caches by address, so `resolveSeed` reuses this exact load):
+  // without verified source there is no storage layout, hence no anchors and nothing for the
+  // pipeline below to do. A plain ETH transfer to an EOA lands here, and gets a report, not a throw.
+  const target = await session.contracts(seed.to as Address);
+  if (target.kind !== "contract") return untraceableReport(session, seed, target);
 
   const resolved = await resolveSeed(session, seed, options);
   const tokenSides = resolved.anchors.map((ai, i) =>
