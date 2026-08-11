@@ -1,4 +1,4 @@
-import type { Seed } from "../tools/contract-storage-tracer/src/schemas/seed";
+import { weiOf, type Seed } from "../tools/contract-storage-tracer/src/schemas/seed";
 import type { Finding } from "./verdict";
 import type { ToolCallRecord } from "./tools";
 import { toolCatalog } from "./tools";
@@ -83,7 +83,8 @@ export function summarizerUserPrompt(args: {
   readonly traceLog: readonly string[];
 }): string {
   const lines: string[] = [
-    `tx: chainId=${args.seed.chainId} from=${args.seed.from} to=${args.seed.to} calldata=${truncate(args.seed.data, 200)}`,
+    `tx: chainId=${args.seed.chainId} from=${args.seed.from} to=${args.seed.to} ` +
+      `value=${weiOf(args.seed.value)} wei calldata=${truncate(args.seed.data, 200)}`,
     "",
     `trace facts:\n${JSON.stringify(args.facts)}`,
     "",

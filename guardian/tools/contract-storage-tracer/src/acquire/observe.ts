@@ -1,4 +1,5 @@
 import { toHex, type Address, type Hex, type PublicClient } from "viem";
+import { weiOf, type Seed } from "../schemas/seed";
 import {
   accessListSchema,
   prestateDiffSchema,
@@ -20,7 +21,29 @@ export interface ObserveSeed {
   readonly from: Address;
   readonly to: Address;
   readonly data: Hex;
+  /** Wei attached to the call. A payable call takes a different branch with and without it. */
+  readonly value?: bigint;
 }
+
+/** Narrows a seed to what observation needs, carrying `value` across as wei. */
+export const observeSeed = (seed: Seed): ObserveSeed => ({
+  from: seed.from as Address,
+  to: seed.to as Address,
+  data: seed.data as Hex,
+  ...(seed.value !== undefined ? { value: weiOf(seed.value) } : {}),
+});
+
+/**
+ * The JSON-RPC call object every tier simulates. `value` is omitted when zero so a non-payable
+ * call sends exactly the object it always did — nodes disagree on how they treat an explicit
+ * `value: 0x0`, and there is nothing to gain from finding out.
+ */
+const callObject = (seed: ObserveSeed): Record<string, string> => ({
+  from: seed.from,
+  to: seed.to,
+  data: seed.data,
+  ...(seed.value ? { value: toHex(seed.value) } : {}),
+});
 
 export interface SlotObservation {
   readonly address: Address;
@@ -131,7 +154,13 @@ async function detectRevert(
   blockNumber: bigint,
 ): Promise<boolean> {
   try {
-    await publicClient.call({ account: seed.from, to: seed.to, data: seed.data, blockNumber });
+    await publicClient.call({
+      account: seed.from,
+      to: seed.to,
+      data: seed.data,
+      blockNumber,
+      ...(seed.value ? { value: seed.value } : {}),
+    });
     return false;
   } catch (err) {
     const name = (err as { name?: string })?.name ?? "";
@@ -151,7 +180,7 @@ export function createObserver(publicClient: PublicClient): StorageObserver {
     blockNumber: bigint,
   ): Promise<readonly SlotObservation[] | undefined> {
     if (debugSupported === false) return undefined;
-    const callObj = { from: seed.from, to: seed.to, data: seed.data };
+    const callObj = callObject(seed);
     try {
       const raw = await withTimeout(
         request({
@@ -204,7 +233,7 @@ export function createObserver(publicClient: PublicClient): StorageObserver {
       const raw = await withTimeout(
         request({
           method: "eth_createAccessList",
-          params: [{ from: seed.from, to: seed.to, data: seed.data }, toHex(blockNumber)],
+          params: [callObject(seed), toHex(blockNumber)],
         }),
         TRACE_TIMEOUT_MS,
       );

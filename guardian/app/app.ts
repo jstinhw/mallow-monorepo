@@ -7,6 +7,7 @@ import {
   type AgentHooks,
   type AgentReport,
 } from "../agent/agent";
+import { redact } from "../tools/contract-storage-tracer/src/redact";
 
 /**
  * The agent entry point, injectable so tests can drive the stream without touching
@@ -26,7 +27,19 @@ export type AnalyzeFn = (input: unknown, hooks: AgentHooks) => Promise<AgentRepo
  * since headers are flushed before the agent starts.
  */
 export function buildServer(analyze: AnalyzeFn = analyzeTransactionRequest): FastifyInstance {
-  const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
+  const app = Fastify({
+    logger: {
+      level: process.env.LOG_LEVEL ?? "info",
+      // Every log line — ours, and Fastify's own request/error logging — leaves through
+      // this stream, so it is the one place that has to redact. A failed RPC call reaches
+      // here as a viem error whose message carries the keyed RPC URL verbatim.
+      stream: {
+        write: (line: string): void => {
+          process.stdout.write(redact(line));
+        },
+      },
+    },
+  });
 
   app.register(cors, {
     origin: "*",
@@ -60,7 +73,9 @@ export function buildServer(analyze: AnalyzeFn = analyzeTransactionRequest): Fas
       if (reply.raw.writableEnded) return;
       // The client can vanish mid-analysis; a dead socket must not kill the run.
       try {
-        reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        // Every SSE frame is serialized here, so redacting the finished frame covers
+        // progress lines, model deltas, the verdict, and relayed error messages at once.
+        reply.raw.write(redact(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       } catch {
         /* client gone */
       }
@@ -70,10 +85,15 @@ export function buildServer(analyze: AnalyzeFn = analyzeTransactionRequest): Fas
       { chainId: seed.chainId, from: seed.from, to: seed.to },
       "guardian check started",
     );
+    // The model server takes one call at a time, so a run nobody is listening to still blocks
+    // the next caller for minutes. When the client hangs up, let go of the model turn.
+    const aborter = new AbortController();
+    reply.raw.on("close", () => aborter.abort());
     try {
       const report = await analyze(seed, {
         onProgress: (line) => send("progress", { line }),
         onDelta: (delta) => send("delta", delta),
+        signal: aborter.signal,
       });
       // Emit before logging: a throw from the log call would otherwise turn a
       // completed analysis into an `error` event.

@@ -6,6 +6,7 @@ import {
   type ModelDelta,
   type ModelMessage,
   type ModelProvider,
+  type ModelRequest,
 } from "../tools/contract-storage-tracer/src/llm/provider";
 import type { StepLogger } from "../tools/contract-storage-tracer/src/log";
 import { seedSchema, type Seed } from "../tools/contract-storage-tracer/src/schemas/seed";
@@ -26,31 +27,14 @@ import {
   type VerdictLlmOutput,
 } from "./verdict";
 
-/** Wallets send `value` as hex or decimal; anything unparseable is not zero. */
-function isZeroValue(value: string | number | undefined): boolean {
-  if (value === undefined) return true;
-  try {
-    return BigInt(value) === 0n;
-  } catch {
-    return false;
-  }
-}
-
 /**
- * The request is the EIP-1193 tx shape a wallet already holds, so it posts its object as-is.
- *
- * A value-bearing call is rejected rather than traced: the tracer observes through eth_call /
- * debug_traceCall and never passes `value` (acquire/observe.ts), so a payable seed would be
- * traced down the `msg.value == 0` path and the verdict would describe a different call.
+ * The request is the EIP-1193 tx shape a wallet already holds, so it posts its object as-is —
+ * `value` included: it is carried into every simulation (see `acquire/observe.ts`), so a payable
+ * call is traced down the branch it actually takes.
  */
 export const transactionRequestSchema = seedSchema.extend({
   anchor: z.string().optional(),
   noLlm: z.boolean().optional(),
-  // ponytail: rejected, not supported. Thread `value` into observe.ts's call objects to trace it.
-  value: z
-    .union([z.string(), z.number()])
-    .optional()
-    .refine(isZeroValue, "value-bearing calls are not traced; send value 0"),
 });
 
 export type TransactionRequest = z.infer<typeof transactionRequestSchema>;
@@ -73,10 +57,27 @@ export interface AgentReport {
 
 const MAX_ROUNDS = 3;
 const MAX_CALLS_PER_ROUND = 3;
-// Bounds a reasoning model's thinking time per call (local 27B ≈ 10-20 tok/s: 2500 ≈ 2-4 min worst case).
-const MAX_LLM_TOKENS = 2500;
-// The summarizer is the one call that must succeed and reasons over the largest prompt; give it headroom.
-const SUMMARIZER_MAX_TOKENS = 5000;
+
+/**
+ * Completion budgets, read from env like the rest of the model connection in `defaultProvider`,
+ * because the ceiling is a property of the deployment, not of this code: a local server loads a
+ * model with a fixed context (LM Studio defaults to 4096 regardless of what the weights support)
+ * and refuses outright any request whose `max_tokens` exceeds it. A budget picked for a hosted
+ * large-context model therefore fails 100% of the time locally — and, since the failure arrives
+ * as an empty completion, used to look like a parse error rather than a rejected request.
+ * Defaults fit a 4096-token context; raise both for a model served with more.
+ */
+const tokenBudget = (name: string, fallback: number): number => {
+  const configured = Number(process.env[name]);
+  return Number.isInteger(configured) && configured > 0 ? configured : fallback;
+};
+
+// Also bounds a reasoning model's thinking time per call (local 27B ≈ 10-20 tok/s: 2500 ≈ 2-4 min).
+const MAX_LLM_TOKENS = tokenBudget("LLM_ANALYZER_MAX_TOKENS", 2500);
+// The summarizer is the one call that must succeed and reasons over the largest prompt, so it wants
+// headroom — but it only gets what the served context allows, and the compact-prompt retry below
+// covers the overflow. Same default as the analyzer, which this deployment is known to serve.
+const SUMMARIZER_MAX_TOKENS = tokenBudget("LLM_SUMMARIZER_MAX_TOKENS", 2500);
 
 /** Live progress hooks so a caller (e.g. the CLI) can show what's happening while the model runs. */
 export interface AgentHooks {
@@ -84,7 +85,24 @@ export interface AgentHooks {
   readonly onProgress?: (line: string) => void;
   /** Raw streamed LLM tokens (reasoning + content) as they arrive. */
   readonly onDelta?: (delta: ModelDelta) => void;
+  /**
+   * Aborts the model turns when the caller goes away. Without it an abandoned check keeps the
+   * gate's single model slot for minutes, so the next check queues behind a run nobody wants.
+   */
+  readonly signal?: AbortSignal;
 }
+
+/**
+ * The model server takes one call at a time (see the gate in `llm/openai-compat`), so a second
+ * concurrent check waits here. Say so, or the stream looks hung for the length of the other run.
+ */
+const QUEUED_LINE = "another check is using the model — queued, waiting for a slot…";
+
+const llmHooks = (hooks: AgentHooks): Pick<ModelRequest, "onDelta" | "onQueued" | "signal"> => ({
+  ...(hooks.onDelta ? { onDelta: hooks.onDelta } : {}),
+  ...(hooks.onProgress ? { onQueued: () => hooks.onProgress?.(QUEUED_LINE) } : {}),
+  ...(hooks.signal ? { signal: hooks.signal } : {}),
+});
 
 const analyzerActionSchema = z.object({
   intent: z.string().max(400).default(""),
@@ -166,7 +184,7 @@ export async function runAnalyzer(
   const request = {
     temperature: 0,
     maxTokens: MAX_LLM_TOKENS,
-    ...(hooks.onDelta ? { onDelta: hooks.onDelta } : {}),
+    ...llmHooks(hooks),
   };
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {
@@ -239,7 +257,7 @@ export async function runSummarizer(
       {
         temperature: 0,
         maxTokens: SUMMARIZER_MAX_TOKENS,
-        ...(hooks.onDelta ? { onDelta: hooks.onDelta } : {}),
+        ...llmHooks(hooks),
         messages: [
           { role: "system", content: summarizerSystemPrompt() },
           { role: "user", content: userContent },
@@ -291,7 +309,7 @@ export async function analyzeTransactionRequest(
   options: AgentHooks & { readonly provider?: ModelProvider } = {},
 ): Promise<AgentReport> {
   const request = transactionRequestSchema.parse(input);
-  const { anchor, noLlm, value: _value, ...seed } = request;
+  const { anchor, noLlm, ...seed } = request;
   const t0 = Date.now();
 
   const log = createMemoryTraceLogger(options.onProgress && ((line) => options.onProgress?.(line)));
@@ -313,7 +331,13 @@ export async function analyzeTransactionRequest(
   const traceCall: ToolCallRecord = {
     round: 0,
     tool: "trace_storage_writes",
-    args: { chainId: seed.chainId, from: seed.from, to: seed.to, selector: trace.decoded.selector },
+    args: {
+      chainId: seed.chainId,
+      from: seed.from,
+      to: seed.to,
+      selector: trace.decoded.selector,
+      ...(seed.value !== undefined ? { value: seed.value } : {}),
+    },
     ok: true,
     result: { seedSummary: trace.seedSummary, coverage: trace.coverage.kind },
     durationMs: traceMs,

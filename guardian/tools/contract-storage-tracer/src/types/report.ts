@@ -50,6 +50,12 @@ export interface DecodedArg {
   readonly value: string;
 }
 
+/**
+ * `selector` when the seed carries no calldata — a plain value transfer. Distinct from a 4-byte
+ * selector nothing could decode: there is no intent hidden here, so it must not be flagged as one.
+ */
+export const NO_CALLDATA = "0x";
+
 /** How the decoded seed call was understood. */
 export interface DecodedSummary {
   readonly selector: string;
