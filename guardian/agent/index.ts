@@ -47,7 +47,7 @@ function makeCliHooks(): {
   return {
     onProgress(line) {
       endStream();
-      process.stderr.write(line.startsWith("[trace]") ? `${line}\n` : `[agent] ${line}\n`);
+      process.stderr.write(`[agent] ${line}\n`);
     },
     onDelta(d) {
       if (d.channel !== channel) {
